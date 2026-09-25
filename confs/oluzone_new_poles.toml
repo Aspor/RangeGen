@@ -1,0 +1,63 @@
+
+[paths]
+output_dir = "new_ouluzone_pole_pararell_test_3"
+#
+#
+laz_dir = "/home/timo/Media/Documents/tutkimus/Gälve_Nevia/Dataset/ouluzone_risteys/250306_OuluZone_Risteys_Vt20_LAS_Traj"
+trajectory_dir = "/home/timo/Media/Documents/tutkimus/Gälve_Nevia/Dataset/ouluzone_risteys/250306_OuluZone_Risteys_Vt20_LAS_Traj"
+#
+#
+
+[image]
+# Optional: if omitted, defaults will be used
+# width = 1024
+# height = 128
+max_range = 50
+# elevation_range = [-45, 45]
+
+elevation_range  = [-45 ,45]
+width= 1024
+height= 128
+
+
+[sensor]
+# Optional: if omitted, defaults will be used
+sensor_orientation = [0.0, 0.0, 0.0]
+use_trajectory_orientation = true
+
+[processing]
+number_of_processes = s4
+sampling_points = 100
+skip_start = 0 # trajectory points to be skipped from the start
+skip_end = 250   # trajectory points to be skipped from the end
+stride_distance = 15 #step size in meters
+
+randomize = true
+pos_perturbations = 0
+orientation_perturbations = 0
+rand_range_x = [-5,5]
+rand_range_y = [-5,5]
+rand_range_z = [0.5,1.5]
+
+rand_range_roll = [-10,10]
+rand_range_pitch = [-15,15]
+rand_range_yaw = [-180,180]
+
+x_segment  = [0.05,0.95]
+y_segment = [0.05,0.95]
+z_segment = [0.0,0.5]
+
+classes = [0,1,2]
+
+
+[pole_detection]
+
+cell_size = 5.5
+z_percentile = 77
+clearance_m = 0.20
+
+fill_holes = false
+eps_xy = 1.0
+min_samples = 25
+r_max_m = 0.7
+verticality_min = 0.85

@@ -1,0 +1,43 @@
+[project]
+name = "rangeGen"
+version = "0.1.0"
+description = "A modular Python toolkit for generating LiDAR range images, RGB projections, intensity and classification maps from LAS/LAZ point clouds and trajectory files."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Timo Μäenpää", email = "timo.maenpaa@oulu.fi" }
+]
+keywords = [
+    "lidar",
+    "range-image",
+    "point-cloud",
+    "las",
+    "laz",
+    "coco",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "laspy[laszip,lazrs]>=2.7.0",
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.5",
+    "opencv-python-headless>=4.13.0.92",
+    "pillow>=12.2.0",
+    "pycocotools>=2.0.11",
+    "pypcd4>=1.4.3",
+    "pyproj>=3.7.2",
+    "pyyaml>=6.0",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+    "tqdm>=4.67.3",
+    # NOTE: `poledetection` is an internal package (not published to PyPI) that
+    # is installed locally. It is required only for the pole-detection pipeline
+    # (generate_from_trajectory_with_pole_detection.py) and must be installed
+    # separately in environments that use that pipeline.
+]
+
+[project.scripts]
+rangegen = "rangegen.main:main"
+
+[build-system]
+requires = ["uv_build>=0.11.11,<0.12.0"]
+build-backend = "uv_build"

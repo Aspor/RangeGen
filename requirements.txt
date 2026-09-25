@@ -1,0 +1,14 @@
+laspy
+matplotlib
+numpy
+open3d
+opencv_python
+opencv_python_headless
+Pillow
+pypcd4
+pyproj
+scikit_learn
+scipy
+toml
+tqdm
+pycocotools
