@@ -9,7 +9,7 @@ each detected pole. The main entry point is
   (see :func:`run_pole_detection`) to find pole locations.
 * Filters out poles that are too close together to avoid redundant
   viewpoints.
-* Builds a :class:`rangegen.range_image_generator.Pose`
+* Builds a :class:`range_image_generator.Pose`
   (position + sensor orientation) for each accepted pole.
 
 Pole detection itself is parallelised with a ``multiprocessing.Pool``:
@@ -35,9 +35,9 @@ import logging
 from poledetection import detect_poles, remove_ground
 from poledetection.utils import voxelize_pointcloud
 
-from rangegen.range_image_generator import Pose
+from range_image_generator import Pose
 
-from rangegen.range_image_generator.transforms import crop_points_by_distance
+from range_image_generator.transforms import crop_points_by_distance
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,7 +104,7 @@ def generate_poses_around_poles(cfg, trajectory, points, category=4):
 
     ####Deprecated use generate_around_objects instead ####
     Runs pole detection along the trajectory, then builds a camera
-    :class:`~rangegen.range_image_generator.Pose` at each
+    :class:`~range_image_generator.Pose` at each
     detected pole, skipping any pole closer than ``min_dist`` metres to
     the previously accepted one to avoid redundant viewpoints.
 

@@ -8,7 +8,7 @@ from enum import Flag, auto
 from multiprocessing import Pool
 from pycocotools.coco import COCO
 
-from rangegen.range_image_generator import (
+from range_image_generator import (
     read_trajectory_file,
     match_las_and_trajectory,
     FrameIntrinsics,
@@ -16,17 +16,15 @@ from rangegen.range_image_generator import (
     frame_randomizer,
     write_coco_json,
 )
-from rangegen.range_image_generator.io_utils import (
+from range_image_generator.io_utils import (
     load_pointcloud,
 )
 
-from rangegen.samplers.generate_from_random_points import random_sampling
-from rangegen.samplers.generate_from_trajectory import generate_poses_around_trajectory
-from rangegen.samplers.generate_from_trajectory_with_pole_detection import (
-    generate_poses_around_poles,
-)
-from rangegen.reprojection.deprojection import label_pointcloud_coco
-from rangegen.samplers.generate_around_objects import generate_poses_around_objects
+from samplers.generate_from_random_points import random_sampling
+from samplers.generate_from_trajectory import generate_poses_around_trajectory
+
+from reprojection.deprojection import label_pointcloud_coco
+from samplers.generate_around_objects import generate_poses_around_objects
 
 
 logger = logging.getLogger(__name__)
@@ -69,6 +67,9 @@ def label_pointcloud(cfg, points, pipeline, trajectory=None):
     ret = []
 
     if pipelineenum.poles in pipeline:
+        from samplers.generate_from_trajectory_with_pole_detection import (
+            generate_poses_around_poles,
+        )
         result = generate_poses_around_poles(cfg, trajectory, points.memmap("r+"))
         ret.append(zip((result[0], result[1], result[3])))
 

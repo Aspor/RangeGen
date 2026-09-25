@@ -8,7 +8,7 @@ configured sensor orientation, returning ``(poses, basenames)``.
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from rangegen import Pose
+from range_image_generator.utils import Pose
 # -------------------------------------------------------------------------
 # Sampling helpers
 # -------------------------------------------------------------------------
