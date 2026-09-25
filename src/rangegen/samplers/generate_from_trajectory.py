@@ -8,7 +8,7 @@ sampled point as ``(poses, basenames)``.
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from rangegen.range_image_generator import Pose
+from range_image_generator import Pose
 import logging
 
 

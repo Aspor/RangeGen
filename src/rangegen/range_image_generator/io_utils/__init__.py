@@ -10,7 +10,7 @@ This package groups the I/O helpers into focused submodules:
 
 All public names are re-exported here so callers can simply do::
 
-    from rangegen.range_image_generator.io_utils import (
+    from range_image_generator.io_utils import (
         load_pointcloud,
         write_pointcloud,
         read_trajectory_file,

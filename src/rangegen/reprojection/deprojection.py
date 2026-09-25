@@ -14,9 +14,9 @@ from scipy.spatial import KDTree
 from pycocotools.coco import COCO
 import logging
 
-from ..range_image_generator.utils import Instance
+from range_image_generator.utils import Instance
 from .multiprocessing_workers import calculate_annotation_indexes, make_tasks
-from ..range_image_generator.io_utils import (
+from range_image_generator.io_utils import (
     update_classification,
     create_progress_pountclouds,
 )

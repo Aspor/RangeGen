@@ -18,16 +18,16 @@ from tqdm import tqdm
 from multiprocessing.pool import Pool
 
 
-from ..range_image_generator.projection import range_projection_idx_only
-from ..range_image_generator.transforms import transform_points, crop_points_by_distance
-from ..range_image_generator.utils import DeprojectionTask, Instance
+from range_image_generator.projection import range_projection_idx_only
+from range_image_generator.transforms import transform_points, crop_points_by_distance
+from range_image_generator.utils import DeprojectionTask, Instance
 
-from ..range_image_generator.utils import FrameIntrinsics
+from range_image_generator.utils import FrameIntrinsics
 
 from .label_expansion import expand_labels
 
 from .filenamematcher import find_matches
-from rangegen.range_image_generator.utils import parse_pose
+from range_image_generator.utils import parse_pose
 
 
 def calculate_annotation_indexes(annotation_tasks):

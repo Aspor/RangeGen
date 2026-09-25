@@ -81,6 +81,10 @@ pip install -e .
 ### **3. Run Example**
 
 ```bash
+uv run src/rangegen/main.py confs/config.toml 
+
+or
+
 rangegen confs/reprojection_testing.toml
 ```
 

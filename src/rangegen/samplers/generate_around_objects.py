@@ -4,7 +4,7 @@ import random
 import logging
 
 from scipy.spatial import KDTree
-from rangegen.range_image_generator import Pose
+from range_image_generator import Pose
 
 
 def generate_poses_around_objects(cfg, detection_results, trajectory=None):
