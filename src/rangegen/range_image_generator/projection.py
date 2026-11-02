@@ -9,17 +9,16 @@ This module provides:
 
 Column layout
 -------------
-Currently the projection helpers assume a fixed 8-column point cloud layout::
+The projection helpers now support both:
+1. The default 8-column layout ``(x, y, z, intensity, classification, r, g, b)``
+   which maps to ``{'intensity': 3, 'classification': 4, ('r', 'g', 'b'): (5, 6, 7)}``
+2. Custom layouts via ``field_mapping`` from :class:`~range_image_generator.utils.MemmapMetadata``.
 
-    [x, y, z, intensity, classification, r, g, b]
+When a custom field mapping is provided, the corresponding column index is looked up
+in the mapping. The intensity field must always be present for range/intensity images,
+as must classification for class-based outputs.
 
-i.e. ``x, y, z`` at columns 0-2, ``intensity`` at column 3,
-``classification`` at column 4, and RGB at columns 5-7. This matches the output
-of ``load_pointcloud`` for the default ``fields=["intensity", "classification"]``.
-``proj_class_from_idx`` and ``proj_color_from_idx`` rely on these fixed column
-positions, so pass point clouds with that layout.
-
-This could be changes in the future to use field_mapping in pointcloud metadata
+This supersedes the previous hardcoded column assumptions.
 """
 
 import numpy as np
@@ -142,7 +141,9 @@ def proj_range_from_idx(proj_idx, point_cloud, position):
     return proj_range
 
 
-def proj_intensity_from_idx(proj_idx, point_cloud):
+def proj_intensity_from_idx(
+    proj_idx: np.ndarray, point_cloud: np.ndarray, field_mapping: dict | None = None
+):
     """Reconstruct a projected intensity image from a pixel-index map.
 
     Parameters
@@ -150,7 +151,11 @@ def proj_intensity_from_idx(proj_idx, point_cloud):
     proj_idx : numpy.ndarray
         Projected ``(H, W)`` pixel-to-point index map, ``-1`` for empty.
     point_cloud : numpy.ndarray
-        Point cloud indexed by ``proj_idx``; uses the intensity column (3).
+        Point cloud indexed by ``proj_idx``.
+    field_mapping : dict[str, int], optional
+        Mapping from field names to column indices. If provided and not None,
+        the intensity column is looked up in this mapping. If not provided or None,
+        uses the default layout where intensity is at column 3.
 
     Returns
     -------
@@ -161,23 +166,32 @@ def proj_intensity_from_idx(proj_idx, point_cloud):
     proj_intensity = np.full((H, W), -1.0, dtype=np.float32)
 
     mask = proj_idx >= 0
-    proj_intensity[mask] = point_cloud[proj_idx[mask], 3]
+
+    # Use field mapping if provided, otherwise use default column index
+    intensity_col = field_mapping.get("intensity", 3) if field_mapping else 3
+    proj_intensity[mask] = point_cloud[proj_idx[mask], intensity_col]
 
     return proj_intensity
 
 
-def proj_class_from_idx(proj_idx, point_cloud):
+def proj_class_from_idx(
+    proj_idx: np.ndarray, point_cloud: np.ndarray, field_mapping: dict | None = None
+):
     """Reconstruct a projected classification image from a pixel-index map.
 
-    The classification label is read from column 4 of ``point_cloud`` and
-    offset by 1 so that 0 always means "empty/background".
+    The classification label is read from the specified column and
+    offset by 1 so that 0 always means 'empty/background'.
 
     Parameters
     ----------
     proj_idx : numpy.ndarray
         Projected ``(H, W)`` pixel-to-point index map, ``-1`` for empty.
     point_cloud : numpy.ndarray
-        Point cloud indexed by ``proj_idx``; uses the classification column (4).
+        Point cloud indexed by ``proj_idx``.
+    field_mapping : dict[str, int], optional
+        Mapping from field names to column indices. If provided and not None,
+        the classification column is looked up in this mapping. If not provided or None,
+        uses the default layout where classification is at column 4.
 
     Returns
     -------
@@ -188,15 +202,20 @@ def proj_class_from_idx(proj_idx, point_cloud):
     proj_class = np.zeros((H, W), dtype=np.uint8)
 
     mask = proj_idx >= 0
-    proj_class[mask] = point_cloud[proj_idx[mask], 4].astype(np.uint8) + 1
+
+    # Use field mapping if provided, otherwise use default column index
+    class_col = field_mapping.get("classification", 4) if field_mapping else 4
+    proj_class[mask] = point_cloud[proj_idx[mask], class_col].astype(np.uint8) + 1
 
     return proj_class
 
 
-def proj_color_from_idx(proj_idx, point_cloud):
+def proj_color_from_idx(
+    proj_idx: np.ndarray, point_cloud: np.ndarray, field_mapping: dict | None = None
+):
     """Reconstruct a projected colour image from a pixel-index map.
 
-    RGB is read from columns 5-7 of ``point_cloud`` and stored as BGR so the
+    RGB values are read from the specified columns and stored as BGR so the
     result can be handed directly to OpenCV.
 
     Parameters
@@ -204,7 +223,12 @@ def proj_color_from_idx(proj_idx, point_cloud):
     proj_idx : numpy.ndarray
         Projected ``(H, W)`` pixel-to-point index map, ``-1`` for empty.
     point_cloud : numpy.ndarray
-        Point cloud indexed by ``proj_idx``; uses the RGB columns (5-7).
+        Point cloud indexed by ``proj_idx``.
+    field_mapping : dict[str, int], optional
+        Mapping from field names to column indices. If provided and not None,
+        the RGB column indices are looked up in this mapping using keys
+        'r', 'g', 'b'. If not provided or None, uses the default layout
+        where RGB are at columns 5, 6, 7.
 
     Returns
     -------
@@ -215,12 +239,23 @@ def proj_color_from_idx(proj_idx, point_cloud):
     proj_color = np.zeros((H, W, 3), dtype=np.uint16)
 
     mask = proj_idx >= 0
-    colors = point_cloud[proj_idx[mask], 5:8]
 
-    # Store as (B, G, R) for opencv
-    proj_color[mask, 0] = colors[:, 2]
+    # Use field mapping if provided, otherwise use default column indices
+    if field_mapping is None:
+        r_col, g_col, b_col = 5, 6, 7
+    else:
+        r_col = field_mapping.get('r', 5)
+        g_col = field_mapping.get('g', 6)
+        b_col = field_mapping.get('b', 7)
+
+    colors = np.empty((mask.sum(), 3), dtype=np.float32)
+    colors[:, 0] = point_cloud[proj_idx[mask], b_col]  # B channel (first column)
+    colors[:, 1] = point_cloud[proj_idx[mask], g_col]  # G channel
+    colors[:, 2] = point_cloud[proj_idx[mask], r_col]  # R channel (third column)
+
+    proj_color[mask, 0] = colors[:, 0]
     proj_color[mask, 1] = colors[:, 1]
-    proj_color[mask, 2] = colors[:, 0]
+    proj_color[mask, 2] = colors[:, 2]
 
     return proj_color
 

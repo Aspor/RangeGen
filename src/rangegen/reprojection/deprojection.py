@@ -50,6 +50,8 @@ def label_pointcloud_coco(orginal_pc_mmap_meta, coco_file, cfg):
     """
 
     orginal_pc_mmap = orginal_pc_mmap_meta.memmap("r+")
+    # Extract field_mapping from metadata for flexible point cloud layouts
+    field_mapping = orginal_pc_mmap_meta.field_mapping  # type: ignore[attr-defined]
 
     # ---------------------------------------------------------------
     # Process images
@@ -59,7 +61,7 @@ def label_pointcloud_coco(orginal_pc_mmap_meta, coco_file, cfg):
     annotation_tasks = make_tasks(coco, orginal_pc_mmap_meta, cfg)
     poles = calculate_annotation_indexes(annotation_tasks)
 
-    tmp_pointcloud = project_to_pointcloud(poles, orginal_pc_mmap)
+    tmp_pointcloud = project_to_pointcloud(poles, orginal_pc_mmap, field_mapping)
 
     output_dir = cfg["paths"].get("output_dir", "out")
     os.makedirs(output_dir, exist_ok=True)
@@ -92,7 +94,7 @@ def label_pointcloud_coco(orginal_pc_mmap_meta, coco_file, cfg):
     return poles, coco.loadCats(ids=coco.getCatIds())
 
 
-def project_to_pointcloud(poles, orginal_pc_mmap):
+def project_to_pointcloud(poles, orginal_pc_mmap, field_mapping=None):
     """Assign instance labels to the point cloud using spatial proximity.
 
     A KD-tree is used to find neighboring points around each detected
@@ -104,6 +106,11 @@ def project_to_pointcloud(poles, orginal_pc_mmap):
         Mapping of instance IDs to :class:`Instance` objects.
     orginal_pc_mmap : numpy.memmap
         Memory-mapped point cloud array.
+    field_mapping : dict[str, int] | None, optional
+        Mapping from field names to column indices. Used when writing
+        classification and instance ID columns. If None, uses default layout
+        where classification is at column 4 and instance IDs are at the last
+        column.
 
     Returns
     -------
@@ -111,6 +118,9 @@ def project_to_pointcloud(poles, orginal_pc_mmap):
         A new point cloud array holding the xyz columns, per-instance
         classification/expansion columns, and a final instance-id column.
     """
+
+    # Determine classification column index (default: 4)
+    class_col = field_mapping.get("classification", 4) if field_mapping else 4
 
     logging.debug(("Create KD_tree"))
 
@@ -136,15 +146,15 @@ def project_to_pointcloud(poles, orginal_pc_mmap):
         extra_fields = pole.extra
 
         progress_pc[extra_fields["unexpanded"], 3] = int(pole.instance_id)
-        progress_pc[extra_fields["expanded"], 4] = int(pole.instance_id)
+        progress_pc[extra_fields["expanded"], class_col] = int(pole.instance_id)
         i = 5
 
         for progress in extra_fields["labelExpansion"]:
             progress_pc[progress, i] = int(pole.instance_id)
             i += 1
 
-        idxs, category, id = combine_ids(pole, poles, orginal_pc_mmap, kd_tree)
-        orginal_pc_mmap[idxs, 4] = int(category)
+        idxs, category, id = combine_ids(pole, poles, orginal_pc_mmap, kd_tree, class_col)
+        orginal_pc_mmap[idxs, class_col] = int(category)
         if orginal_pc_mmap.shape[1] > 5:
             orginal_pc_mmap[idxs, -1] = int(id)
 
@@ -154,7 +164,13 @@ def project_to_pointcloud(poles, orginal_pc_mmap):
     return progress_pc
 
 
-def combine_ids(pole: Instance, poles, orginal_pc_mmap, kd_tree):
+def combine_ids(
+    pole: Instance,
+    poles,
+    orginal_pc_mmap,
+    kd_tree,
+    class_col=4,
+):
     """Merge overlapping or neighboring instances in the point cloud.
 
     This function examines spatial neighbors and resolves conflicts
@@ -174,6 +190,8 @@ def combine_ids(pole: Instance, poles, orginal_pc_mmap, kd_tree):
         Point cloud data.
     kd_tree : KDTree
         KD-tree for spatial queries.
+    class_col : int, optional
+        Column index for classification field. Default is 4 (default layout).
 
     Returns
     -------

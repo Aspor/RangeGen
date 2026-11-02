@@ -20,16 +20,15 @@ range_image_generator/  core math, IO, projection, frame generation, COCO
 reprojection/           deprojection and COCO label expansion back to 3D
 """
 
-from range_image_generator import (
+from .range_image_generator import (
     FrameIntrinsics,
-    enumerate2,
     make_output_dirs,
     Frame_Task,
     Pose,
     MemmapMetadata,
 )
 
-from range_image_generator import (
+from .range_image_generator import (
     load_pointcloud,
     write_pointcloud,
     read_trajectory_file,
@@ -39,22 +38,21 @@ from range_image_generator import (
 )
 
 
-from range_image_generator import (
+from .range_image_generator import (
     transform_points,
     perturb_position,
     perturb_orientation,
 )
 
-from range_image_generator import (
+from .range_image_generator import (
     frame_randomizer,
     batched_frame_randomizer,
 )
 
-from range_image_generator import generate_coco, write_coco_json
+from .range_image_generator import generate_coco, write_coco_json
 
 __all__ = [
     "FrameIntrinsics",
-    "enumerate2",
     "make_output_dirs",
     "Frame_Task",
     "Pose",

@@ -563,13 +563,14 @@ def write_pointcloud(
 
     original_shape = points.shape
 
+
     points = points.reshape(
         (-1, 5) if save_labels else (-1, 4)
     )
 
     if transform is not None:
         position, rotation = transform
-
+        points = points.copy()
         points[:, :3] = (
             rotation.T @ points[:, :3].T
         ).T + position

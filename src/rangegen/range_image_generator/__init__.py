@@ -19,7 +19,6 @@ read_exif.py                    EXIF helpers for exported images
 
 from .utils import (
     FrameIntrinsics,
-    enumerate2,
     make_output_dirs,
     Frame_Task,
     Pose,
@@ -53,7 +52,6 @@ from .coco_writer import generate_coco, write_coco_json
 
 __all__ = [
     "FrameIntrinsics",
-    "enumerate2",
     "make_output_dirs",
     "Frame_Task",
     "Pose",

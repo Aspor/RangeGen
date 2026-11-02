@@ -173,6 +173,9 @@ def generate_tasks(poses, names, config, memmap_meta, output_dir, batched=False)
         max_range=max_range,
     )
 
+    # Extract field_mapping from metadata for flexible point cloud layouts
+    field_mapping = memmap_meta.field_mapping
+
     tasks = []
     if batched:
         task_poses = []
@@ -200,6 +203,7 @@ def generate_tasks(poses, names, config, memmap_meta, output_dir, batched=False)
                     ),
                     number_of_pos_perturbations=pos_perturbations,
                     number_of_orientation_perturbations=orientation_perturbations,
+                    field_mapping=field_mapping,
                 )
             )
             task_poses = []
@@ -222,6 +226,7 @@ def generate_tasks(poses, names, config, memmap_meta, output_dir, batched=False)
                 ),
                 number_of_pos_perturbations=pos_perturbations,
                 number_of_orientation_perturbations=orientation_perturbations,
+                field_mapping=field_mapping,
             )
         )
 
@@ -243,6 +248,7 @@ def generate_tasks(poses, names, config, memmap_meta, output_dir, batched=False)
                 ),
                 number_of_pos_perturbations=pos_perturbations,
                 number_of_orientation_perturbations=orientation_perturbations,
+                field_mapping=field_mapping,
             )
         )
 
@@ -251,7 +257,7 @@ def generate_tasks(poses, names, config, memmap_meta, output_dir, batched=False)
 
 def main():
 
-    config_file = sys.argv[1] if len(sys.argv) > 1 else "config.toml"
+    config_file = sys.argv[1] if len(sys.argv) > 1 else "confs/config.toml"
     logging.debug(("Using config:", config_file))
 
     with open(config_file, "rb") as config_fh:

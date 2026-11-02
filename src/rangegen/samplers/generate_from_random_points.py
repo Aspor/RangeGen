@@ -14,7 +14,7 @@ from range_image_generator.utils import Pose
 # -------------------------------------------------------------------------
 
 
-def calculate_sampling_range_average(minimum, maximum, avg, segment):
+def _calculate_sampling_range_average(minimum, maximum, avg, segment):
     """Shrink a per-axis bounding range to a central segment of the cloud.
 
     Parameters
@@ -39,7 +39,7 @@ def calculate_sampling_range_average(minimum, maximum, avg, segment):
     return minimum + cutoff_x_min, maximum - cutoff_x_max
 
 
-def array_in_bounds(points, bounds):
+def _array_in_bounds(points, bounds):
     """Return a boolean mask of points inside a per-axis bounding box.
 
     Parameters
@@ -106,13 +106,13 @@ def calculate_random_sampling_points(
         else sensor_orientation
     )
 
-    x_range = calculate_sampling_range_average(
+    x_range = _calculate_sampling_range_average(
         minimums[0], maximums[0], avgs[0], x_segment
     )
-    y_range = calculate_sampling_range_average(
+    y_range = _calculate_sampling_range_average(
         minimums[1], maximums[1], avgs[1], y_segment
     )
-    z_range = calculate_sampling_range_average(
+    z_range = _calculate_sampling_range_average(
         minimums[2], maximums[2], avgs[2], z_segment
     )
 
@@ -124,7 +124,7 @@ def calculate_random_sampling_points(
     if classes is not None:
         pts = pts[np.isin(pts[:, 4], classes)]
 
-    sampling_points = pts[array_in_bounds(pts[:, :3], bounds)]
+    sampling_points = pts[_array_in_bounds(pts[:, :3], bounds)]
     rng = np.random.default_rng()
     orientation = sensor_orientation if sensor_orientation is not None else [0, 0, 0]
     traj_len_str = len(str(number_of_sampling_points))

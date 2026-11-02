@@ -25,6 +25,7 @@ dependencies = [
     "pycocotools>=2.0.11",
     "pypcd4>=1.4.3",
     "pyproj>=3.7.2",
+    "pytest>=9.1.1",
     "pyyaml>=6.0",
     "scikit-learn>=1.8.0",
     "scipy>=1.17.1",
@@ -41,3 +42,9 @@ rangegen = "rangegen.main:main"
 [build-system]
 requires = ["uv_build>=0.11.11,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+pythonpath = "src/rangegen"
+addopts = [
+    "--import-mode=importlib",
+]

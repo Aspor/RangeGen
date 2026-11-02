@@ -49,6 +49,43 @@ from .io_utils import (
 
 from .coco_writer import generate_coco
 
+def extract_field_from_points(points, field_name, field_mapping):
+    """Extract a single field (intensity or classification) from a point cloud.
+
+    This helper function is used for reading fields that need to be filtered
+    based on the field_mapping. If field_mapping is None or doesn't contain
+    the requested field, uses default column indices (x=0, y=1, z=2, intensity=3,
+    classification=4, r=5, g=6, b=7).
+
+    Parameters
+    ----------
+    points : numpy.ndarray
+        Point cloud array with shape ``(N, num_fields)``.
+    field_name : str
+        Name of the field to extract (e.g., 'intensity', 'classification').
+    field_mapping : dict[str, int] | None
+        Mapping from field names to column indices. If None or the field is not
+        present in the mapping, default column indices are used.
+
+    Returns
+    -------
+    numpy.ndarray
+        The extracted field values for all points.
+    """
+    if field_mapping is None or field_name not in field_mapping:
+        # Use default layout
+        col_idx = 0 if field_name == 'x' else \
+                   1 if field_name == 'y' else \
+                   2 if field_name == 'z' else \
+                   3 if field_name == 'intensity' else \
+                   4 if field_name == 'classification' else \
+                   5 if field_name == 'r' else \
+                   6 if field_name == 'g' else \
+                   7
+        return points[:, col_idx]
+    return points[:, field_mapping[field_name]]
+
+
 # -------------------------------------------------------------------------
 # Frame randomization driver
 # -------------------------------------------------------------------------
@@ -86,6 +123,8 @@ def batched_frame_randomizer(task):
         [pose.position for pose in task.pose],
         range=task.frame_intrinsics.max_range * 2.5,
     )
+    # Extract field_mapping from task.points if available
+    field_mapping = task.points.field_mapping  # type: ignore[attr-defined]
     # No perturbations → run standard single-thread path
     no_perturb = (
         task.number_of_pos_perturbations + task.number_of_orientation_perturbations == 0
@@ -107,6 +146,7 @@ def batched_frame_randomizer(task):
             task.number_of_orientation_perturbations,
             task.position_perturbation,
             task.orientation_perturbation,
+            field_mapping=field_mapping,
         )
         gc.collect()
     return images, annotations
@@ -133,6 +173,8 @@ def frame_randomizer(task):
     """
     make_output_dirs(task.output_dir, task.save_pc)
     points = task.points.memmap("r")
+    # Extract field_mapping from task.points if available
+    field_mapping = task.points.field_mapping  # type: ignore[attr-defined]
     # Crop points to near sensor
     t1 = time.time()
     points_mmap, original_indices = crop_points_by_distance(
@@ -157,6 +199,7 @@ def frame_randomizer(task):
         task.number_of_orientation_perturbations,
         task.position_perturbation,
         task.orientation_perturbation,
+        field_mapping=field_mapping,
     )
 
 
@@ -175,6 +218,7 @@ def randomize_frames(
     number_of_orientation_perturbations,
     position_perturbation,
     orientation_perturbation,
+    field_mapping=None,
 ):
     """Generate one or more frames by perturbing a single base pose.
 
@@ -215,7 +259,10 @@ def randomize_frames(
     position_perturbation : tuple
         Per-axis ``(min, max)`` ranges for position offsets.
     orientation_perturbation : tuple
-        Per-axis ``(min, max)`` ranges for orientation offsets.
+        Per-axis ``(min, max)`` orientation offsets.
+    field_mapping : dict[str, int], optional
+        Mapping from field names to column indices in the point cloud.
+        Passed through to projection functions to access fields correctly.
 
     Returns
     -------
@@ -235,6 +282,7 @@ def randomize_frames(
             original_indices,
             original_pc=points,
             save_pc=save_pc,
+            field_mapping=field_mapping,
         )
         return images, annotations, output_dir
 
@@ -281,13 +329,11 @@ def randomize_frames(
                 None,
                 0,
                 save_pc,
-                images,
-                annotations,
             )
             annotations += annotations_
             images += images_
 
-    # Orientation‑only perturbations
+    # Orientation-only perturbations
     if number_of_pos_perturbations == 0:
         for j in range(number_of_orientation_perturbations):
             new_ori = perturb_orientation(orientation, *orientation_perturbation)
@@ -304,8 +350,6 @@ def randomize_frames(
                 None,
                 0,
                 save_pc,
-                images,
-                annotations,
             )
             annotations += annotations_
             images += images_
@@ -331,6 +375,7 @@ def transform_and_project(
     timestamp=None,
     valid_proportion_limit=0,
     save_pc=False,
+    field_mapping: dict[str, int] | None = None,
 ):
     """Transform a point cloud to a pose, project it, and save all frame outputs.
 
@@ -365,6 +410,9 @@ def transform_and_project(
         ``0``.
     save_pc : bool, optional
         Whether to also export PCD point clouds. Default is ``False``.
+    field_mapping : dict[str, int], optional
+        Mapping from field names to column indices in the point cloud.
+        Passed through to projection functions to access fields correctly.
 
     Returns
     -------
@@ -423,6 +471,7 @@ def transform_and_project(
         timestamp=timestamp,
         save_pc=save_pc,
         original_indices=original_indices,
+        field_mapping=field_mapping,
     )
 
     logging.debug((f"Saved frame: {filename}"))
@@ -439,6 +488,7 @@ def save_images(
     timestamp,
     original_indices,
     save_pc=False,
+    field_mapping: dict[str, int] | None = None,
 ):
     """Write all derived per-frame outputs to ``output_dir``.
 
@@ -448,7 +498,7 @@ def save_images(
     image record and annotations from the classification image.
 
     #TODO Add option to choose which images are saved.
-    # Read fields from pointcloud metadata instead of hardcoding
+    Read fields from pointcloud metadata instead of hardcoding
 
     Parameters
     ----------
@@ -471,6 +521,10 @@ def save_images(
         ``(N, 1)``.
     save_pc : bool, optional
         Whether to also export PCD point clouds. Default is ``False``.
+    field_mapping : dict[str, int], optional
+        Mapping from field names to column indices in the point cloud.
+        Used by projection functions to access intensity, classification,
+        and RGB fields correctly.
 
     Returns
     -------
@@ -508,7 +562,6 @@ def save_images(
             position,
             multiplier=1000,
         )
-
         save_image(
             filtered_range,
             os.path.join(output_dir, "range_filtered", f"{filename}.png"),
@@ -521,7 +574,7 @@ def save_images(
 
     del range_img, filtered_range
 
-    intensity_img = proj_intensity_from_idx(proj_idx, points)
+    intensity_img = proj_intensity_from_idx(proj_idx, points, field_mapping)
     filtered_intensity = filter_invalid_points(intensity_img.copy())
     try:
         save_image(
@@ -542,7 +595,7 @@ def save_images(
     del intensity_img, filtered_intensity
 
     try:
-        proj_color = proj_color_from_idx(proj_idx, points)
+        proj_color = proj_color_from_idx(proj_idx, points, field_mapping)
         # Save RGB, range, intensity
         save_image(
             proj_color,
@@ -557,7 +610,7 @@ def save_images(
         pass
 
     try:
-        class_img = proj_class_from_idx(proj_idx, points)
+        class_img = proj_class_from_idx(proj_idx, points, field_mapping)
 
         # Classification image (only if classes >1 exist)
         if np.any(class_img > 1):

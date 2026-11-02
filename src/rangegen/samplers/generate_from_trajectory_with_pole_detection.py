@@ -35,9 +35,9 @@ import logging
 from poledetection import detect_poles, remove_ground
 from poledetection.utils import voxelize_pointcloud
 
-from range_image_generator import Pose
+from ..range_image_generator import Pose
 
-from range_image_generator.transforms import crop_points_by_distance
+from ..range_image_generator.transforms import crop_points_by_distance
 
 
 @dataclass(frozen=True, slots=True)

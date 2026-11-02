@@ -70,39 +70,6 @@ def make_output_dirs(baseoutput_dir, save_pc=False):
 # Custom enumeration helper
 # -------------------------------------------------------------------------
 
-
-def enumerate2(xs, skip_start=0, skip_end=0, stride=1):
-    """Enumerate a sequence with optional starting offset, ending offset, and
-    stride (step size). Useful when selecting every Nth element or skipping
-    leading/trailing sections.
-
-    Parameters
-    ----------
-    xs : sequence
-        Iterable or indexable sequence.
-
-    skip_start : int
-        Number of elements to skip from the beginning.
-
-    skip_end : int
-        Number of elements to skip at the end.
-
-    stride : int
-        Step size.
-
-    Yields
-    ------
-    tuple
-        (index, element), where the index advances by stride.
-    """
-    index = skip_start
-    length = len(xs) - skip_end
-
-    for x in xs[skip_start:length:stride]:
-        yield index, x
-        index += stride
-
-
 @dataclass(slots=True)
 class MemmapMetadata:
     """Metadata describing a memmapped point cloud stored on disk.
@@ -193,11 +160,11 @@ class FrameIntrinsics:
         return (self.fov_down, self.fov_up, self.height, self.width, self.max_range)
 
 
+
+
 NUM_RE = re.compile(
     r"np\.float64\(\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*\)"
 )
-
-
 def parse_pose(text: str):
     """Parse a 6-DoF pose from a text blob containing six numbers.
 
@@ -272,6 +239,10 @@ class Frame_Task:
         Number of orientation perturbations per position. Default is ``0``.
     save_pc : bool, optional
         Whether to export PCD point clouds. Default is ``False``.
+    field_mapping : dict[str, int] | None, optional
+        Mapping from field names to column indices. Passed through to projection
+        functions for flexible point cloud layouts. Default is ``None`` (uses
+        default layout: x=0, y=1, z=2, intensity=3, classification=4, r=5, g=6, b=7).
     """
 
     output_dir: any
@@ -284,6 +255,7 @@ class Frame_Task:
     number_of_pos_perturbations: int = 0
     number_of_orientation_perturbations: int = 0
     save_pc: bool = False
+    field_mapping: dict | None = None
 
 
 @dataclass
